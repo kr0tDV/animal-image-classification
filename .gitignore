@@ -1,0 +1,14 @@
+# Виртуальное окружение
+venv/
+__pycache__/
+*.pyc
+
+# Файлы IDE
+.vscode/
+.idea/
+
+model/*.keras
+model/*.h5
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
