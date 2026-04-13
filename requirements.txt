@@ -6,3 +6,5 @@ seaborn
 scikit-learn
 opencv-python
 pillow
+flask
+werkzeug

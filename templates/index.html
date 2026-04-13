@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Классификатор животных | VGG16</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* Две колонки */
+        .two-columns {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        /* Левая колонка — информация о проекте */
+        .info-panel {
+            flex: 1.2;
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        .info-panel h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-panel .badge {
+            background: #e67e22;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+
+        .info-panel h2 {
+            font-size: 1.5rem;
+            margin: 25px 0 15px 0;
+            border-left: 4px solid #e67e22;
+            padding-left: 15px;
+        }
+
+        .info-panel p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #ecf0f1;
+        }
+
+        .class-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .class-tag {
+            background: #e67e22;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .metrics {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .metrics p {
+            margin: 8px 0;
+            font-family: monospace;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            border-top: 1px solid #7f8c8d;
+            padding-top: 20px;
+        }
+
+        /* Правая колонка — загрузка и результат */
+        .upload-panel {
+            flex: 1.8;
+            background: white;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* Область загрузки (драг-н-дроп) */
+        .dropzone {
+            border: 3px dashed #e67e22;
+            border-radius: 24px;
+            background: #f8f9fa;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .dropzone:hover {
+            background: #e9ecef;
+            border-color: #d35400;
+        }
+
+        .dropzone p {
+            font-size: 1.2rem;
+            color: #2c3e50;
+        }
+
+        .dropzone small {
+            color: #7f8c8d;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Контейнер для фото, кнопок и результата (вертикальная колонка) */
+        .image-result-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .image-box {
+            background: #f1f2f6;
+            border-radius: 24px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .result-box h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-left: 4px solid #e67e22;
+            padding-left: 12px;
+        }
+
+        .prediction-class {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e67e22;
+            margin: 15px 0;
+        }
+
+        .confidence {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .prob-bar {
+            background-color: #e9ecef;
+            border-radius: 12px;
+            margin: 12px 0;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            background-color: #e67e22;
+            height: 32px;
+            line-height: 32px;
+            color: white;
+            padding-left: 12px;
+            border-radius: 12px;
+            text-align: left;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        button {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #d35400;
+            transform: scale(1.01);
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #e67e22;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 15px;
+            border-radius: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .two-columns {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="two-columns">
+        <!-- ЛЕВАЯ ПАНЕЛЬ: ОПИСАНИЕ ПРОЕКТА -->
+        <div class="info-panel">
+            <h1>🐾 Animal Classifier</h1>
+            <div class="badge">Transfer Learning · VGG16</div>
+            <p>Нейросеть распознаёт <strong>5 видов животных</strong> на фотографиях: кошка, корова, олень (deep), собака, лев.</p>
+            <div class="class-list">
+                <span class="class-tag">🐱 cat</span>
+                <span class="class-tag">🐮 cow</span>
+                <span class="class-tag">🦌 deep (deer)</span>
+                <span class="class-tag">🐶 dog</span>
+                <span class="class-tag">🦁 lion</span>
+            </div>
+
+            <h2>📊 О модели</h2>
+            <div class="metrics">
+                <p>✅ Архитектура: <strong>VGG16</strong> (ImageNet)</p>
+                <p>✅ Точность на тесте: <strong>89.1%</strong></p>
+                <p>✅ Потери: <strong>0.466</strong></p>
+                <p>✅ Размер входного изображения: 150×150</p>
+                <p>✅ Аугментация: повороты, сдвиги, отражения</p>
+            </div>
+
+            <h2>📁 Датасет</h2>
+            <p>Источник: Kaggle — Animal Image Classification (5 species).<br>Всего изображений: 629 (train: 464, validation: 83, test: 82).</p>
+
+            <h2>🧠 Как это работает</h2>
+            <p>Загрузите фото животного. Модель предобработает изображение (масштабирование, нормализация) и выдаст предсказание: класс, уверенность и вероятности для всех 5 классов.</p>
+            <div class="footer-note">⚡ Используется TensorFlow + Flask. Модель загружается один раз при старте.</div>
+        </div>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ: ЗАГРУЗКА И РЕЗУЛЬТАТ -->
+        <div class="upload-panel">
+            <!-- Область загрузки (изначально видна) -->
+            <div id="dropzone" class="dropzone">
+                <p>📸 <strong>Нажмите или перетащите фото</strong></p>
+                <p>Поддерживаются: JPG, JPEG, PNG</p>
+                <small>Максимальный размер: 16 МБ</small>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg">
+            </div>
+
+            <!-- Контейнер для фото, кнопок и результата (изначально скрыт) -->
+            <div id="imageResultContainer" class="image-result-container hidden">
+                <div class="image-box">
+                    <img id="previewImage" src="" alt="Предпросмотр">
+                </div>
+                <!-- Кнопка "Загрузить новое фото" теперь сверху -->
+                <button id="newImageBtn">📁 Загрузить новое фото</button>
+                <!-- Кнопка "Распознать" под ней -->
+                <button id="predictBtn">🔍 Распознать</button>
+                <div class="result-box" id="resultBox">
+                    <h3>📌 Результат распознавания</h3>
+                    <div id="predictionContent">
+                        <p style="color: #7f8c8d;">Нажмите «Распознать»</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const imageResultContainer = document.getElementById('imageResultContainer');
+    const previewImage = document.getElementById('previewImage');
+    const predictBtn = document.getElementById('predictBtn');
+    const newImageBtn = document.getElementById('newImageBtn');
+    const predictionContent = document.getElementById('predictionContent');
+
+    let selectedFile = null;
+
+    // Показать выбор файла при клике на dropzone
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    // Drag & drop
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.style.backgroundColor = '#e9ecef';
+    });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.style.backgroundColor = '#f8f9fa';
+    });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.backgroundColor = '#f8f9fa';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleFile(file);
+        } else {
+            alert('Пожалуйста, перетащите изображение');
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Неподдерживаемый формат. Загрузите JPG или PNG.');
+            return;
+        }
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        // Скрыть dropzone, показать контейнер с фото
+        dropzone.classList.add('hidden');
+        imageResultContainer.classList.remove('hidden');
+        // Сбросить предыдущий результат
+        predictionContent.innerHTML = '<p style="color: #7f8c8d;">Нажмите «Распознать»</p>';
+        // Сбросить стиль кнопки
+        predictBtn.disabled = false;
+        predictBtn.innerText = '🔍 Распознать';
+    }
+
+    // Обработка предсказания
+    predictBtn.addEventListener('click', async () => {
+        if (!selectedFile) {
+            alert('Сначала выберите изображение');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        // Индикация загрузки
+        const originalText = predictBtn.innerText;
+        predictBtn.innerText = 'Распознавание... ';
+        const loader = document.createElement('span');
+        loader.className = 'loader';
+        predictBtn.appendChild(loader);
+        predictBtn.disabled = true;
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                const confidencePercent = (data.confidence * 100).toFixed(2);
+                let probsHtml = '<div style="margin-top: 15px;"><strong>Вероятности:</strong></div>';
+                for (const [cls, prob] of Object.entries(data.probabilities)) {
+                    const percent = (prob * 100).toFixed(2);
+                    probsHtml += `
+                        <div class="prob-bar">
+                            <div class="prob-fill" style="width: ${percent}%;">${cls}: ${percent}%</div>
+                        </div>
+                    `;
+                }
+                predictionContent.innerHTML = `
+                    <div class="prediction-class">${data.class}</div>
+                    <div class="confidence">Уверенность: ${confidencePercent}%</div>
+                    ${probsHtml}
+                `;
+            } else {
+                predictionContent.innerHTML = `<div class="error">Ошибка: ${data.error}</div>`;
+            }
+        } catch (err) {
+            predictionContent.innerHTML = `<div class="error">Сетевая ошибка: ${err.message}</div>`;
+        } finally {
+            predictBtn.innerText = originalText;
+            predictBtn.disabled = false;
+            const loaderSpan = predictBtn.querySelector('.loader');
+            if (loaderSpan) loaderSpan.remove();
+        }
+    });
+
+    // Загрузить новое фото: возвращаемся к dropzone, очищаем выбранный файл
+    newImageBtn.addEventListener('click', () => {
+        selectedFile = null;
+        previewImage.src = '';
+        dropzone.classList.remove('hidden');
+        imageResultContainer.classList.add('hidden');
+        fileInput.value = '';
+        predictionContent.innerHTML = '<p style="color: #7f8c8d;">Нажмите «Распознать»</p>';
+    });
+</script>
+</body>
+</html>
