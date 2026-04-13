@@ -82,7 +82,7 @@ Animal Image Classification/
 ### 1. Клонировать репозиторий
 
 ```bash
-git clone https://github.com/ваш-username/animal-image-classification.git
+git clone https://github.com/kr0tDV/animal-image-classification
 cd animal-image-classification
 ```
 
